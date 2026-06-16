@@ -1,6 +1,7 @@
 // 这是后端服务器的入口点
 // 就像一家餐厅的前台：接待客人（请求），指引到对的部门处理
 
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');

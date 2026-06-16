@@ -46,19 +46,31 @@ router.post('/topup', requireAuth, async (req, res) => {
 
   if (walletError) return res.status(500).json({ error: '找不到钱包' });
 
-  // 加钱（用数据库的原子操作，防止并发问题）
-  const { error: updateError } = await supabase
-    .from('wallets')
-    .update({ balance: supabase.rpc('increment_balance', { wallet_id: wallet.id, amount }) })
-    .eq('id', wallet.id);
-
-  // 直接用 SQL 更新更安全（避免 read-then-write 竞争条件）
-  const { error: rpcError } = await supabase.rpc('topup_wallet', {
+  // 调用 functions.sql 里定义的充值函数（原子操作：加余额 + 记录交易）
+  const { error: updateError } = await supabase.rpc('topup_wallet', {
     p_wallet_id: wallet.id,
     p_amount: parseFloat(amount)
   });
 
-  if (rpcError) return res.status(500).json({ error: '充值失败：' + rpcError.message });
+  if (updateError) {
+    // RPC 不可用时 fallback：直接 UPDATE + INSERT（开发/测试用）
+    const { data: current } = await supabase
+      .from('wallets').select('balance').eq('id', wallet.id).single();
+
+    const { error: fallbackErr } = await supabase
+      .from('wallets')
+      .update({ balance: Number(current.balance) + parseFloat(amount) })
+      .eq('id', wallet.id);
+
+    if (fallbackErr) return res.status(500).json({ error: '充值失败：' + fallbackErr.message });
+
+    await supabase.from('transactions').insert({
+      to_wallet_id: wallet.id,
+      amount: parseFloat(amount),
+      type: 'topup',
+      description: 'topup'
+    });
+  }
 
   // 拿最新余额回传
   const { data: updated } = await supabase
