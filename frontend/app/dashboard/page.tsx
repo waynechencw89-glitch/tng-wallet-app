@@ -3,8 +3,8 @@
 // 主仪表板：显示余额和最近交易
 // 这是用户登入后看到的第一个页面
 
-import { useEffect, useState, useRef } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import { useEffect, useState } from 'react';
+import { getSupabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -23,17 +23,6 @@ export default function Dashboard() {
   const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-
-  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null);
-  function getSupabase() {
-    if (!supabaseRef.current) {
-      supabaseRef.current = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-    }
-    return supabaseRef.current;
-  }
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 

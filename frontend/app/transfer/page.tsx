@@ -2,8 +2,8 @@
 
 // 转账页面：把钱转给另一个用户
 
-import { useState, useRef } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import { useState } from 'react';
+import { getSupabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 
 export default function TransferPage() {
@@ -14,17 +14,6 @@ export default function TransferPage() {
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
   const router = useRouter();
-
-  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null);
-  function getSupabase() {
-    if (!supabaseRef.current) {
-      supabaseRef.current = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-    }
-    return supabaseRef.current;
-  }
 
   async function handleTransfer(e: React.FormEvent) {
     e.preventDefault();

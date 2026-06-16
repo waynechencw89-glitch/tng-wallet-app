@@ -1,33 +1,17 @@
-'use client'; // 这行告诉 Next.js 这个组件在浏览器运行（不是服务器）
+'use client';
 
-// 这是登入/注册页面
-// 为什么用 Supabase 的 auth 而不是自己写？
-// 因为自己写登入系统很容易有安全漏洞，Supabase 帮你处理好了！
-
-import { useState, useRef } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import { useState } from 'react';
+import { getSupabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 
 export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLogin, setIsLogin] = useState(true); // true=登入, false=注册
+  const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
   const router = useRouter();
-
-  // 用 ref 延迟初始化，避免 Next.js build 时在服务端执行
-  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null);
-  function getSupabase() {
-    if (!supabaseRef.current) {
-      supabaseRef.current = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-    }
-    return supabaseRef.current;
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,14 +45,12 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-600 to-blue-800">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-6xl mb-2">💳</div>
           <h1 className="text-2xl font-bold text-blue-600">TNG Wallet</h1>
           <p className="text-gray-500 text-sm">你的数字钱包</p>
         </div>
 
-        {/* 表单 */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
@@ -89,7 +71,7 @@ export default function AuthPage() {
           />
 
           {message && (
-            <p className={`text-sm text-center ${message.includes('失败') ? 'text-red-500' : 'text-green-500'}`}>
+            <p className={`text-sm text-center ${message.includes('失败') || message.includes('出错') ? 'text-red-500' : 'text-green-500'}`}>
               {message}
             </p>
           )}
@@ -103,7 +85,6 @@ export default function AuthPage() {
           </button>
         </form>
 
-        {/* 切换登入/注册 */}
         <p className="text-center text-gray-500 text-sm mt-4">
           {isLogin ? '还没有账号？' : '已有账号？'}
           <button

@@ -2,8 +2,8 @@
 
 // 充值页面
 
-import { useState, useRef } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import { useState } from 'react';
+import { getSupabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 
 const QUICK_AMOUNTS = [10, 30, 50, 100, 200, 500];
@@ -14,17 +14,6 @@ export default function TopupPage() {
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
   const router = useRouter();
-
-  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null);
-  function getSupabase() {
-    if (!supabaseRef.current) {
-      supabaseRef.current = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-    }
-    return supabaseRef.current;
-  }
 
   async function handleTopup(e: React.FormEvent) {
     e.preventDefault();
