@@ -3,7 +3,7 @@
 // 主仪表板：显示余额和最近交易
 // 这是用户登入后看到的第一个页面
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -24,32 +24,34 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null);
+  function getSupabase() {
+    if (!supabaseRef.current) {
+      supabaseRef.current = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+    }
+    return supabaseRef.current;
+  }
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  // 拿到当前登入用户的 token
-  // 这个 token 会带去后端，证明"我是谁"
   async function getAuthToken() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await getSupabase().auth.getSession();
     return session?.access_token;
   }
 
   async function loadData() {
     const token = await getAuthToken();
     if (!token) {
-      router.push('/'); // 没有 token = 没登入，踢回去
+      router.push('/');
       return;
     }
 
-    // 用 token 调用后端 API
     const headers = { Authorization: `Bearer ${token}` };
 
     try {
-      // 同时请求余额和交易记录（并行，更快！）
       const [balanceRes, txRes] = await Promise.all([
         fetch(`${API_URL}/wallet/balance`, { headers }),
         fetch(`${API_URL}/wallet/transactions`, { headers })
@@ -68,8 +70,7 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    // 检查有没有登入
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    getSupabase().auth.getUser().then(({ data: { user } }) => {
       if (!user) {
         router.push('/');
         return;
@@ -80,7 +81,7 @@ export default function Dashboard() {
   }, []);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
+    await getSupabase().auth.signOut();
     router.push('/');
   }
 

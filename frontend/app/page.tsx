@@ -4,7 +4,7 @@
 // 为什么用 Supabase 的 auth 而不是自己写？
 // 因为自己写登入系统很容易有安全漏洞，Supabase 帮你处理好了！
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
 
@@ -17,11 +17,17 @@ export default function AuthPage() {
 
   const router = useRouter();
 
-  // 建立 Supabase 客户端（前端版本）
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // 用 ref 延迟初始化，避免 Next.js build 时在服务端执行
+  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null);
+  function getSupabase() {
+    if (!supabaseRef.current) {
+      supabaseRef.current = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+    }
+    return supabaseRef.current;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); // 防止页面刷新
@@ -30,7 +36,7 @@ export default function AuthPage() {
 
     if (isLogin) {
       // 登入
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await getSupabase().auth.signInWithPassword({ email, password });
       if (error) {
         setMessage('登入失败：' + error.message);
       } else {
@@ -38,7 +44,7 @@ export default function AuthPage() {
       }
     } else {
       // 注册
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await getSupabase().auth.signUp({ email, password });
       if (error) {
         setMessage('注册失败：' + error.message);
       } else {

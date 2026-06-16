@@ -2,7 +2,7 @@
 
 // 转账页面：把钱转给另一个用户
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
 
@@ -15,17 +15,23 @@ export default function TransferPage() {
   const [success, setSuccess] = useState(false);
   const router = useRouter();
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null);
+  function getSupabase() {
+    if (!supabaseRef.current) {
+      supabaseRef.current = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+    }
+    return supabaseRef.current;
+  }
 
   async function handleTransfer(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setMessage('');
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await getSupabase().auth.getSession();
     if (!session) { router.push('/'); return; }
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/wallet/transfer`, {
