@@ -30,27 +30,29 @@ export default function AuthPage() {
   }
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); // 防止页面刷新
+    e.preventDefault();
     setLoading(true);
     setMessage('');
 
-    if (isLogin) {
-      // 登入
-      const { error } = await getSupabase().auth.signInWithPassword({ email, password });
-      if (error) {
-        setMessage('登入失败：' + error.message);
+    try {
+      if (isLogin) {
+        const { error } = await getSupabase().auth.signInWithPassword({ email, password });
+        if (error) {
+          setMessage('登入失败：' + error.message);
+        } else {
+          router.push('/dashboard');
+        }
       } else {
-        router.push('/dashboard'); // 成功！去仪表板
+        const { error } = await getSupabase().auth.signUp({ email, password });
+        if (error) {
+          setMessage('注册失败：' + error.message);
+        } else {
+          setMessage('注册成功！请检查邮箱验证你的账号，然后登入。');
+          setIsLogin(true);
+        }
       }
-    } else {
-      // 注册
-      const { error } = await getSupabase().auth.signUp({ email, password });
-      if (error) {
-        setMessage('注册失败：' + error.message);
-      } else {
-        setMessage('注册成功！请检查邮箱验证你的账号，然后登入。');
-        setIsLogin(true);
-      }
+    } catch (err: any) {
+      setMessage('出错了：' + (err?.message || '请重试'));
     }
 
     setLoading(false);
